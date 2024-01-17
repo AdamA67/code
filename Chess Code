@@ -1,0 +1,820 @@
+import pygame
+import time
+start = time.time()
+
+pygame.init()
+
+width_display = 800
+height_display = 800
+screen = pygame.display.set_mode((width_display, height_display))
+pygame.display.set_caption("AdamChess")
+clock = pygame.time.Clock()
+
+white = (255,255,255)
+brown = (196, 164, 132)
+blue = (0,68,116)
+red = (102,0,0)
+green = (118,150,86)
+
+
+
+square_size = width_display // 8
+
+
+class Chessboard:
+
+
+
+    def __init__(self):
+        self.board = [[0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0]]
+        self.know_selected_piece = None
+        self.current_color = "brown"
+
+
+
+
+    def draw_board(self):
+        for row in range(8):
+            for col in range(8):
+                color = white
+                if (row + col) % 2 == 0:
+                    color = white
+                else:
+                    if self.current_color == "brown":
+                        color = brown
+                    elif self.current_color == "blue":
+                        color = blue
+                    elif self.current_color == "red" :
+                        color = red
+                    elif self.current_color == "green" :
+                        color = green
+                pygame.draw.rect(screen, color, (col * square_size, row * square_size, square_size, square_size))
+
+
+
+                
+
+
+
+                    
+                if self.board[row][col] != 0:
+                    if isinstance(self.board[row][col], Piece):
+                        piece_x = col * square_size 
+                        piece_y = row * square_size 
+                        self.board[row][col].draw_piece(col * 100, row * 100)
+
+        valid_moves = []
+        if self.know_selected_piece is not None:
+            #Call calculate_valid_moves to get the list of valid moves
+            valid_moves = self.know_selected_piece.calculate_valid_moves(x_cor, y_cor)
+
+        for i in valid_moves:
+            x, y = i
+            pygame.draw.circle(screen, (69, 69, 69), ((x + 0.5) * square_size, (y + 0.5) * square_size), 10, 0)
+        
+
+
+        if self.know_selected_piece is not None:
+            pygame.draw.rect(screen, (255, 0, 0), (x_cor * square_size, y_cor * square_size, square_size, square_size), 3)
+
+    
+
+
+    def notation(self, x, y, piece):
+        col = None
+        if x.lower() == 'a':
+            col = 0
+        elif x.lower() == 'b':
+            col = 1
+        elif x.lower() == 'c':
+            col = 2
+        elif x.lower() == 'd':
+            col = 3
+        elif x.lower() == 'e':
+            col = 4
+        elif x.lower() == 'f':
+            col = 5
+        elif x.lower() == 'g':
+            col = 6
+        elif x.lower() == 'h':
+            col = 7
+
+        #Convert y to row index
+        row = 8 - y
+
+        self.board[row][col] = piece
+
+
+
+
+
+chessboard= Chessboard()
+theme = "Neo"
+
+def change_color(color):
+    if color == "Black":
+        return "White"
+    elif color == "White" :
+        return "Black"
+
+class Piece:
+
+    def __init__(self, color):
+        self.color = color
+        
+        
+        
+        
+         
+    def draw_piece(self, x, y):
+        screen.blit(self.image,(x,y))
+
+
+    def checks(self, x_cor, y_cor):
+        for move in self.calculate_valid_moves(x_cor, y_cor):
+            if move == king_cor(change_color(self.color)):
+                return True
+        return False
+     
+        
+
+class Queen(Piece):
+    def __init__(self, color):
+        super().__init__(color)
+        
+        self.value = 9
+        if color == "White":
+            if theme == "Neo":
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/WhiteQueen.png"), (100,100))
+            elif theme == "Lichess":
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/lichess.white_queen.png"), (100,100))
+            
+        elif color == "Black" :
+            if theme == "Neo":
+                
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/BlackQueen.png"), (100,100))
+            elif theme == "Lichess":
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/lichess.black_queen.png"), (100,100))
+
+    def check_piece(self, previous_x, previous_y, x_cor, y_cor):
+
+        move_x = abs(x_cor - previous_x)
+        move_y = abs(y_cor - previous_y)
+
+        if (move_x == 0 and move_y != 0) or (move_x != 0 and move_y == 0) or (move_x == move_y and move_x != 0):
+            return True  
+        else:
+            return False
+    def check_empty(self, previous_x, previous_y, x_cor, y_cor):
+        if abs(x_cor - previous_x) == abs(y_cor - previous_y):
+            for i in range(1, abs(previous_x - x_cor)):
+                if x_cor > previous_x and y_cor > previous_y:
+                    if chessboard.board[previous_y + i][previous_x + i] != 0:
+                        return False
+                elif x_cor < previous_x and y_cor < previous_y:
+                    if chessboard.board[previous_y - i][previous_x - i] != 0:
+                        return False
+                elif x_cor > previous_x and y_cor :
+                    if chessboard.board[previous_y - i][previous_x + i] != 0:
+                            return False
+                elif x_cor < previous_x and y_cor > previous_y:
+                    if chessboard.board[previous_y + i][previous_x - i] != 0:
+                            return False
+        elif x_cor == previous_x:  #vertical movement
+            for i in range(1, abs(previous_y - y_cor)):
+                if x_cor > previous_x and y_cor > previous_y:
+                    if chessboard.board[previous_y + i][previous_x] != 0:
+                        return False
+                else:
+                    if chessboard.board[previous_y - i][previous_x] != 0:
+                        return False
+        elif y_cor == previous_y:  #horizontal movement
+            for i in range(1, abs(previous_x - x_cor)):
+                if x_cor > previous_x:
+                    if chessboard.board[previous_y][previous_x + i] != 0:
+                        return False
+                else:
+                    if chessboard.board[previous_y][previous_x - i] != 0:
+                        return False
+
+        return True
+
+    def calculate_valid_moves(self, x_cor, y_cor):
+        self.valid_moves = []  # reset moves
+        if self.check_empty(previous_x, previous_y, x_cor, y_cor) == True:
+            # add valid moves for the queen
+            for i in range(1, 8):
+                # horizontal and vertical moves
+                self.valid_moves.append((x_cor + i, y_cor))
+                self.valid_moves.append((x_cor - i, y_cor))
+                self.valid_moves.append((x_cor, y_cor + i))
+                self.valid_moves.append((x_cor, y_cor - i))
+
+                # Diagonal moves
+                self.valid_moves.append((x_cor + i, y_cor + i))
+                self.valid_moves.append((x_cor - i, y_cor - i))
+                self.valid_moves.append((x_cor + i, y_cor - i))
+                self.valid_moves.append((x_cor - i, y_cor + i))
+
+        return self.valid_moves
+           
+class Rook(Piece):
+    def __init__(self, color):
+        super().__init__(color)
+        
+        self.value = 5
+        if color == "White":
+            if theme == "Neo":
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/WhiteRookFinalPng.png"), (100,100))
+            elif theme == "Lichess":
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/lichess.white_rook.png"), (100,100))
+            
+        elif color == "Black" :
+           if theme == "Neo":
+               self.image = pygame.transform.scale(pygame.image.load("PieceImage/BlackRook.png"), (100,100))
+           elif theme == "Lichess":
+               self.image = pygame.transform.scale(pygame.image.load("PieceImage/lichess.black_rook.png"), (100,100))
+    def check_piece(self, previous_x, previous_y, x_cor, y_cor):
+        
+        move_x = abs(x_cor - previous_x)
+        move_y = abs(y_cor - previous_y)
+        
+        if (move_x == 0 and move_y != 0) or (move_x != 0 and move_y == 0):
+            return True
+        else:
+            return False
+    def check_empty(self, previous_x, previous_y, x_cor, y_cor):
+        if x_cor == previous_x:  #vertical movement
+            for i in range(1, abs(previous_y - y_cor)):
+                if y_cor > previous_y:
+                    if chessboard.board[previous_y + i][previous_x] != 0:
+                        return False
+                else:
+                    if chessboard.board[previous_y - i][previous_x] != 0:
+                        return False
+        elif y_cor == previous_y:  #horizontal movement
+            for i in range(1, abs(previous_x - x_cor)):
+                if x_cor > previous_x:
+                    if chessboard.board[previous_y][previous_x + i] != 0:
+                        return False
+                else:
+                    if chessboard.board[previous_y][previous_x - i] != 0:
+                        return False
+
+        return True
+    def calculate_valid_moves(self, x_cor, y_cor):
+        self.valid_moves = []  # reset moves
+        if self.check_empty(previous_x, previous_y, x_cor, y_cor) == True :
+            # add valid moves for the rook
+            for i in range(1, 8):
+                # Vertical moves
+                if 0 <= y_cor + i < 8:
+                    self.valid_moves.append((x_cor, y_cor + i))
+                if 0 <= y_cor - i < 8:
+                    self.valid_moves.append((x_cor, y_cor - i))
+
+                # Horizontal moves
+                if 0 <= x_cor + i < 8:
+                    self.valid_moves.append((x_cor + i, y_cor))
+                if 0 <= x_cor - i < 8:
+                    self.valid_moves.append((x_cor - i, y_cor))
+
+        return self.valid_moves
+           
+class Pawn(Piece):
+    def __init__(self, color):
+        super().__init__(color)
+        self.valid_moves_printed = False
+        
+        self.value = 1
+        if color == "White":
+            if theme == "Neo": 
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/WhitePawn.png"), (100,100))
+            elif theme == "Lichess":
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/lichess.white_pawn.png"), (100,100))
+            
+        elif color == "Black" :
+           if theme == "Neo":
+               self.image = pygame.transform.scale(pygame.image.load("PieceImage/BlackPawn.png"), (100,100))
+           elif theme == "Lichess":
+               self.image = pygame.transform.scale(pygame.image.load("PieceImage/lichess.black_pawn.png"), (100,100))
+
+    
+              
+         
+    def check_empty(self, previous_x, previous_y, x_cor, y_cor):
+        if self.color == "Black":
+            if y_cor - previous_y == 2 and chessboard.board[y_cor][x_cor] == 0 and chessboard.board[y_cor + 2][x_cor] == 0:
+                return True
+            elif y_cor - previous_y == 1 and chessboard.board[y_cor][x_cor] == 0:  # one square 
+                return True
+            elif abs(previous_x - x_cor) == 1 and abs(previous_y - y_cor) == 1 and chessboard.board[y_cor][x_cor] != 0 and chessboard.board[y_cor][x_cor].color == "White":
+                return True
+            else:
+                return False
+        elif self.color == "White":
+            if previous_y - y_cor == 2 and chessboard.board[y_cor][x_cor] == 0 and chessboard.board[y_cor - 2][x_cor] == 0:
+                return True
+            elif previous_y - y_cor == 1 and chessboard.board[y_cor][x_cor] == 0:  # one square
+                return True
+            elif abs(previous_x - x_cor) == 1 and abs(previous_y - y_cor) == 1 and chessboard.board[y_cor][x_cor] != 0 and chessboard.board[y_cor][x_cor].color == "Black":
+                return True
+            else:
+                return False    
+
+
+    def calculate_valid_moves(self, x_cor, y_cor):
+        self.valid_moves = []  # reset moves
+
+        
+
+        if self.color == "White":
+            # Move one square forward
+            if 0 <= y_cor - 1 < 8 and chessboard.board[y_cor - 1][x_cor] == 0:
+                self.valid_moves.append((x_cor, y_cor - 1))
+
+            # Move two squares forward from the start
+            if y_cor == 6 and chessboard.board[y_cor - 1][x_cor] == 0 and chessboard.board[y_cor - 2][x_cor] == 0:
+                self.valid_moves.append((x_cor, y_cor - 2))
+
+            # take diagonally to the left
+            if 0 <= x_cor -1 < 8 and 0 <= y_cor -1 < 8 and chessboard.board[y_cor - 1][x_cor - 1] != 0 \
+                    and chessboard.board[y_cor - 1][x_cor - 1].color != self.color:
+                self.valid_moves.append((y_cor - 1, x_cor - 1))
+
+            # take diagonally to the right
+            if 0 <= x_cor + 1 < 8 and 0 <= y_cor - 1 < 8 and chessboard.board[y_cor - 1][x_cor + 1] != 0 \
+                    and chessboard.board[y_cor - 1][x_cor + 1].color != self.color:
+                self.valid_moves.append((x_cor + 1, y_cor - 1))
+
+        elif self.color == "Black":
+            # Move one square forward for Black pawns
+            if 0 <= y_cor + 1 < 8 and chessboard.board[y_cor + 1][x_cor] == 0:
+                self.valid_moves.append((x_cor, y_cor + 1))
+
+            # Move two squares forward from the start for Black pawns
+            if y_cor == 1 and chessboard.board[y_cor + 1][x_cor] == 0 and chessboard.board[y_cor + 2][x_cor] == 0:
+                self.valid_moves.append((x_cor, y_cor + 2))
+
+            # take diagonally to the left for Black pawns
+            if 0 <= x_cor - 1 < 8 and 0 <= y_cor + 1 < 8 and chessboard.board[y_cor + 1][x_cor - 1] != 0 \
+                    and chessboard.board[y_cor + 1][x_cor - 1].color != self.color:
+                self.valid_moves.append((x_cor - 1, y_cor + 1))
+
+            # take diagonally to the right for Black pawns
+            if 0 <= x_cor + 1 < 8 and 0 <= y_cor + 1 < 8 and chessboard.board[y_cor + 1][x_cor + 1] != 0 \
+                    and chessboard.board[y_cor + 1][x_cor + 1].color != self.color:
+                self.valid_moves.append((x_cor + 1, y_cor + 1))
+
+
+        #if self.valid_moves_printed == False :
+        print(f"Pawn move list : {self.valid_moves}")
+        #self.valid_moves_printed = True
+        return self.valid_moves
+
+           
+class King(Piece):
+    def __init__(self, color):
+        super().__init__(color)
+        self.color = color
+           
+        self.value = 999999999999999
+        if color == "White" :
+            if theme == "Neo": 
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/WhiteKing.png"), (100,100))
+            elif theme == "Lichess":
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/lichess.white_king.png"), (100,100))
+            
+        elif color == "Black":
+            if theme == "Neo": 
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/BlackKing.png"), (100,100))
+            elif theme == "Lichess":
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/lichess.black_king.png"), (100,100))
+            
+    def check_piece(self, previous_x, previous_y, x_cor, y_cor):
+            move_x = abs(x_cor - previous_x)
+            move_y = abs(y_cor - previous_y)
+
+            if (move_x == 1 and move_y == 0) or (move_x == 0 and move_y == 1) or (move_x == 1 and move_y == 1):
+                return True 
+            else:
+                return False
+    def check_empty(self, previous_x, previous_y, x_cor, y_cor):
+        return True
+    def calculate_valid_moves(self, x_cor, y_cor):
+        self.valid_moves = []  # reset moves
+
+        potential_moves = [
+            (x_cor + 1, y_cor),
+            (x_cor - 1, y_cor),
+            (x_cor, y_cor + 1),
+            (x_cor, y_cor - 1),
+            (x_cor + 1, y_cor + 1),
+            (x_cor + 1, y_cor - 1),
+            (x_cor - 1, y_cor + 1),
+            (x_cor - 1, y_cor - 1),
+        ]
+
+        for move in potential_moves:
+            x, y = move
+            if 0 <= x < 8 and 0 <= y < 8:
+                # Check if the square is empty or can be captured
+                if chessboard.board[y][x] == 0 or chessboard.board[y][x].color != self.color:
+                    self.valid_moves.append(move)
+
+        return self.valid_moves
+      
+class Bishop(Piece):
+    def __init__(self, color):
+        super().__init__(color)
+        
+        self.value = 3
+        if color == "White":
+            if theme == "Neo": 
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/WhiteBishop.png"), (100,100))
+            elif theme == "Lichess":
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/lichess.white_bishop.png"), (100,100))
+            
+        elif color == "Black":
+            if theme == "Neo": 
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/BlackBishop.png"), (100,100))
+            elif theme == "Lichess":
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/lichess.black_bishop.png"), (100,100))
+
+
+
+    def check_piece(self, previous_x, previous_y, x_cor, y_cor):
+        
+        move_x = abs(x_cor - previous_x)
+        move_y = abs(y_cor - previous_y)
+        if move_x == move_y and move_x != 0 and move_y != 0:
+            return True
+        else:
+            return False
+    def check_empty(self, previous_x, previous_y, x_cor, y_cor):
+        for i in range(1,abs(previous_x - x_cor)):
+            if previous_x - x_cor < 0 and previous_y - y_cor < 0 :
+                if chessboard.board[previous_y+i][previous_x+i]!=0:
+                    return False
+            elif previous_x - x_cor > 0 and previous_y - y_cor < 0 : 
+                if chessboard.board[previous_y+i][previous_x-i]!=0:  
+                    return False
+            elif previous_x - x_cor < 0 and previous_y - y_cor > 0 :
+                if chessboard.board[previous_y-i][previous_x+i]!=0:
+                    return False
+            elif previous_x - x_cor > 0 and previous_y - y_cor > 0 :
+                if chessboard.board[previous_y-i][previous_x-i]!=0:
+                    return False
+
+        return True
+    def calculate_valid_moves(self, x_cor, y_cor):
+        self.valid_moves = []  # reset moves
+
+        # add valid moves for the bishop
+        for i in range(1, 8):
+            if self.check_empty(previous_x, previous_y, x_cor, y_cor) == True :
+                
+                # Diagonal moves
+                if 0 <= x_cor + i < 8 and 0 <= y_cor + i < 8:
+                    self.valid_moves.append((x_cor + i, y_cor + i))
+                if 0 <= x_cor - i < 8 and 0 <= y_cor - i < 8:
+                    self.valid_moves.append((x_cor - i, y_cor - i))
+                if 0 <= x_cor + i < 8 and 0 <= y_cor - i < 8:
+                    self.valid_moves.append((x_cor + i, y_cor - i))
+                if 0 <= x_cor - i < 8 and 0 <= y_cor + i < 8:
+                    self.valid_moves.append((x_cor - i, y_cor + i))
+
+        return self.valid_moves
+                
+            
+        
+class Knight(Piece):
+    def __init__(self, color):
+        super().__init__(color)
+        
+        self.value = 3
+        if color == "White":
+            if theme == "Neo": 
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/WhiteKnight.png"), (100,100))
+            elif theme == "Lichess":
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/lichess.white_knight.png"), (100,100))
+            
+        elif color == "Black" :
+           if theme == "Neo": 
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/BlackKnight.png"), (100,100))
+           elif theme == "Lichess":
+                self.image = pygame.transform.scale(pygame.image.load("PieceImage/lichess.black_knight.png"), (100,100))
+    def check_piece(self, previous_x,  previous_y, x_cor, y_cor): 
+        move_x = abs(x_cor - previous_x)
+        move_y = abs(y_cor - previous_y)
+        if (move_x == 2 and move_y == 1) or (move_x == 1 and move_y == 2):
+            return True
+        else:
+            return False
+    def check_empty(self, previous_x, previous_y, x_cor, y_cor):
+        return True
+    def calculate_valid_moves(self, x_cor, y_cor):
+        self.valid_moves = []#reset moves
+
+        # add valid moves for the knight
+        potential_moves = [
+             (x_cor + 2, y_cor + 1),
+             (x_cor + 1, y_cor + 2),
+             (x_cor - 1, y_cor + 2),
+             (x_cor - 2, y_cor + 1),
+             (x_cor - 2, y_cor - 1),
+             (x_cor - 1, y_cor - 2),
+             (x_cor + 1, y_cor - 2),
+             (x_cor + 2, y_cor - 1),
+         ]
+
+        for i in potential_moves:
+            x, y = i
+            if 0 <= x < 8 and 0 <= y < 8  :
+                if chessboard.board[y][x] == 0 or (chessboard.board[y][x] != 0 and chessboard.board[y][x].color != self.color):
+                    self.valid_moves.append(i)
+        return self.valid_moves
+    
+        
+
+    
+#pawns:       
+letter_list = ["A","B","C","D","E","F","G","H"]
+black_pawns_list = []
+white_pawns_list = []
+for i in range(0,8):
+    black_pawns_list.append(Pawn("Black"))
+
+
+    chessboard.notation(letter_list[i],7,black_pawns_list[i])
+
+
+for j in range(0,8):
+    white_pawns_list.append(Pawn("White"))
+    chessboard.notation(letter_list[j],2,white_pawns_list[j])
+
+#queens:
+white_queen = Queen("White")
+chessboard.notation("D", 1, white_queen)
+
+black_queen = Queen("Black")
+chessboard.notation("D", 8, black_queen)
+
+#kings:
+black_king = King("Black")
+chessboard.notation("E", 8, black_king)
+
+
+white_king = King("White")
+chessboard.notation("E", 1, white_king)
+
+            
+#rooks:
+white_rook_a = Rook("White")
+chessboard.notation("A", 1, white_rook_a)
+
+white_rook_h = Rook("White")
+chessboard.notation("H", 1, white_rook_h)
+
+black_rook_a = Rook("Black")
+chessboard.notation("A", 8, black_rook_a)
+
+black_rook_h = Rook("Black")
+chessboard.notation("H", 8, black_rook_h)
+#bishops:
+
+white_bishop_c = Bishop("White")
+chessboard.notation("C", 1, white_bishop_c)
+
+white_bishop_f = Bishop("White")
+chessboard.notation("F", 1, white_bishop_f)
+
+black_bishop_c = Bishop("Black")
+chessboard.notation("C", 8, black_bishop_c)
+
+black_bishop_f = Bishop("Black")
+chessboard.notation("F", 8, black_bishop_f)
+
+#knights:
+        
+        
+white_knight_b = Knight("White")
+chessboard.notation("B", 1, white_knight_b)
+
+white_knight_g = Knight("White")
+chessboard.notation("G", 1, white_knight_g)
+
+black_knight_b = Knight("Black")
+chessboard.notation("B", 8, black_knight_b)
+
+black_knight_g = Knight("Black")
+chessboard.notation("G", 8, black_knight_g)
+
+
+
+turn = 'White'
+piece_clicked = None
+
+
+def change_turns(turn):
+    
+    if turn == 'White':
+        
+        return 'Black'
+    elif turn == 'Black' :
+        
+        return 'White'
+
+
+
+        
+def check_list(x_cor,y_cor, valid_moves):
+    if (x_cor,y_cor) in valid_moves:
+        return True
+    else :
+        return False
+
+
+def king_cor(color):
+        for row in range(8):
+            for col in range(8): 
+                if isinstance(chessboard.board[row][col], King) and chessboard.board[row][col].color == color:
+                    return col, row
+
+
+black_king_position = king_cor("Black")
+print("Black King Position:", black_king_position)
+white_king_position = king_cor("White")
+print("White King Position:", white_king_position)
+    
+
+run = True
+
+x_cor = 0
+y_cor = 0
+
+
+while run:
+     for event in pygame.event.get():
+         keys = pygame.key.get_pressed()
+         if event.type == pygame.KEYUP and event.key == pygame.K_p:
+             if theme == "Neo" :
+                 theme = "Lichess"
+             elif theme == "Lichess" :
+                 theme = "Neo"
+
+         elif event.type == pygame.KEYUP and event.key == pygame.K_t:
+             
+             
+             if chessboard.current_color == "brown":
+                 chessboard.current_color = "blue"
+             elif chessboard.current_color == "blue":
+                 chessboard.current_color = "red"
+             elif chessboard.current_color == "red":
+                 chessboard.current_color = "green"
+             elif chessboard.current_color == "green":
+                 chessboard.current_color = "brown"
+             
+        
+         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3 and piece_clicked != None :
+                piece_clicked = None
+                chessboard.know_selected_piece = None
+         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 :
+            previous_x = x_cor
+            previous_y = y_cor
+             
+            x_cor = event.pos[0]//square_size
+            y_cor = event.pos[1]//square_size
+            cors = (x_cor,y_cor)
+            print(cors)
+
+            
+
+
+            if chessboard.board[y_cor][x_cor] == 0 and piece_clicked == None:
+                pass
+
+
+            elif chessboard.board[y_cor][x_cor] != 0 and piece_clicked == None and chessboard.board[y_cor][x_cor].color != turn:
+                pass
+            
+
+            # Click on a piece
+            elif chessboard.board[y_cor][x_cor] != 0 and piece_clicked == None and chessboard.board[y_cor][x_cor].color == turn:
+                 
+                piece_clicked = chessboard.board[y_cor][x_cor]
+                chessboard.know_selected_piece = piece_clicked
+
+            
+                
+            # There is a piece selected, and click on blank space            
+            elif chessboard.board[y_cor][x_cor] == 0 and piece_clicked != None:
+                # Is it the correct player's turn?
+                if (piece_clicked.color == 'White' and turn == 'White' or piece_clicked.color == 'Black' and turn == 'Black')\
+                   and piece_clicked.check_empty(previous_x, previous_y, x_cor, y_cor)\
+                   and check_list(x_cor,y_cor, piece_clicked.calculate_valid_moves(previous_x, previous_y)) == True and piece_clicked.checks(x_cor, y_cor) == False:
+                   
+
+                    
+
+                    
+                    black_king_position = king_cor("Black")
+                    print("Black King Position:", black_king_position)
+                    white_king_position = king_cor("White")
+                    print("White King Position:", white_king_position)
+                    turn = change_turns(turn)
+                    chessboard.board[y_cor][x_cor] = piece_clicked
+                    chessboard.board[previous_y][previous_x] = 0 
+                    
+                    piece_clicked = None
+                    chessboard.know_selected_piece = None
+                    
+
+                else :
+                    piece_clicked = None
+                    chessboard.know_selected_piece = None
+            # Color of the piece selected is white and you click on a piece that is black and it is whites turn
+            elif chessboard.board[y_cor][x_cor] != 0 and chessboard.board[y_cor][x_cor].color == 'Black' and piece_clicked.color == 'White' and turn == 'White'\
+                and piece_clicked.check_empty(previous_x, previous_y, x_cor, y_cor) and check_list(x_cor,y_cor, piece_clicked.calculate_valid_moves(previous_x, previous_y)) == True\
+                and piece_clicked.checks()== False:
+
+                turn = change_turns(turn) 
+                chessboard.board[y_cor][x_cor] = piece_clicked
+                chessboard.board[previous_y][previous_x] = 0 
+                    
+                piece_clicked = None
+                chessboard.know_selected_piece = None
+
+                
+            # Color of the piece slected is black and you click on a piece that is white and it is blacks turn
+            elif  chessboard.board[y_cor][x_cor] != 0 and chessboard.board[y_cor][x_cor].color == 'White' and piece_clicked != None and piece_clicked.color == 'Black' and turn == 'Black'\
+                 and check_list(x_cor,y_cor, piece_clicked.calculate_valid_moves(previous_x, previous_y)) == True and piece_clicked.check_empty(previous_x, previous_y, x_cor, y_cor):
+
+                turn = change_turns(turn)
+                chessboard.board[y_cor][x_cor] = piece_clicked
+                chessboard.board[previous_y][previous_x] = 0 
+                    
+                piece_clicked = None
+                chessboard.know_selected_piece = None
+
+            # Color of the piece clicked is the same as the one you are next selecting while its your turn then select that piece
+            elif piece_clicked.color == 'Black' and chessboard.board[y_cor][x_cor].color == 'Black' and turn == "Black" or piece_clicked.color == 'White' and chessboard.board[y_cor][x_cor].color == 'White' and turn == "White" \
+                 '''and check_list(x_cor,y_cor, piece_clicked.calculate_valid_moves(previous_x, previous_y)) == True and piece_clicked.check_empty(previous_x, previous_y, x_cor, y_cor)''' :
+                piece_clicked = chessboard.board[y_cor][x_cor]
+                chessboard.know_selected_piece = piece_clicked
+
+
+            # If you click on a White piece and then on an empty square (or a White piece) while the turn is Blacks then keep the turn as Black
+            elif piece_clicked.color == 'White' and chessboard.board[y_cor][x_cor] == 0 and turn == 'Black' or piece_clicked.color == 'White' and chessboard.board[y_cor][x_cor].color == 'White' and turn == 'Black':
+                turn = 'Black'
+                
+
+
+            # If you click on a Black piece and then on an empty square (or a Black piece) while the turn is Whites then keep the turn as White
+            elif piece_clicked.color == 'Black' and chessboard.board[y_cor][x_cor] == 0 and turn == 'White' or piece_clicked.color == 'Black' and chessboard.board[y_cor][x_cor].color == 'Black' and turn == 'White':
+                turn = 'White'
+
+                
+            
+                
+                
+            
+                
+            # Reset click              
+            else :
+                if piece_clicked is not None:
+                    
+                    piece_clicked = None
+                    chessboard.know_selected_piece = None
+            
+            
+                
+                
+
+
+
+
+
+             
+
+
+
+         elif event.type == pygame.QUIT:
+             run = False
+              
+
+     
+     chessboard.draw_board()
+     pygame.display.update()
+     clock.tick(60)
+
+pygame.quit()
+stop = time.time()
+print("time:", stop - start)
